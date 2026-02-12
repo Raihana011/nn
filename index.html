@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#06090f">
 <title>The Neural Night — Live</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IM+Fell+English:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;700&display=swap');
 
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -28,7 +28,6 @@ body {
   touch-action: none;
 }
 
-/* ── INTRO SCREEN ── */
 #intro {
   position: fixed; inset: 0; z-index: 100;
   background: var(--ink);
@@ -91,7 +90,6 @@ body {
 .mode-btn .btn-label { font-size: 1rem; }
 .mode-btn .btn-desc { font-size: 0.7rem; color: rgba(245,230,200,0.4); font-style: italic; }
 
-/* ── AR MODE ── */
 #ar-view {
   position: fixed; inset: 0; z-index: 50;
   display: none;
@@ -147,6 +145,8 @@ body {
   pointer-events: auto;
   backdrop-filter: blur(8px);
   -webkit-tap-highlight-color: transparent;
+  z-index: 200;
+  position: relative;
 }
 
 .ar-bottom {
@@ -193,11 +193,11 @@ body {
   background: linear-gradient(180deg, #06090f 0%, #0d1520 100%);
   flex-direction: column; align-items: center; justify-content: center;
   gap: 1rem; text-align: center; padding: 2rem;
+  z-index: 10;
 }
 .ar-no-camera.visible { display: flex; }
 .ar-no-camera p { font-style: italic; color: rgba(245,230,200,0.6); line-height: 1.7; }
 
-/* ── PAINTING MODE ── */
 #paint-view {
   position: fixed; inset: 0; z-index: 50;
   display: none;
@@ -216,11 +216,11 @@ body {
 
 .paint-title {
   position: absolute;
-  top: clamp(1rem, 4vw, 2rem);
-  left: clamp(1rem, 4vw, 2rem);
+  top: clamp(1rem, 4vw, 1.5rem);
+  left: clamp(1rem, 4vw, 1.5rem);
   font-family: 'Playfair Display', serif;
   font-style: italic;
-  font-size: clamp(1.1rem, 3.5vw, 2rem);
+  font-size: clamp(1rem, 3vw, 1.6rem);
   color: var(--cream);
   text-shadow: 0 2px 20px rgba(0,0,0,0.9), 0 0 50px rgba(245,208,80,0.3);
   line-height: 1.1;
@@ -228,15 +228,15 @@ body {
 
 .paint-back-btn {
   position: absolute;
-  top: clamp(1rem, 4vw, 2rem);
-  right: clamp(1rem, 4vw, 2rem);
+  top: clamp(1rem, 4vw, 1.5rem);
+  right: clamp(1rem, 4vw, 1.5rem);
   background: rgba(6,9,15,0.8);
   border: 1px solid rgba(245,230,200,0.2);
   color: var(--cream);
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.8rem;
   font-family: 'IM Fell English', serif;
   font-style: italic;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   cursor: pointer;
   border-radius: 2px;
   pointer-events: auto;
@@ -244,35 +244,188 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.paint-info {
+.bottom-panel {
   position: absolute;
-  bottom: clamp(1rem, 4vw, 2rem);
-  left: clamp(1rem, 4vw, 2rem);
-}
-.firing-concept {
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  font-size: clamp(1.2rem, 4vw, 1.8rem);
-  color: var(--gold);
-  text-shadow: 0 0 30px rgba(245,208,80,0.8), 0 2px 10px rgba(0,0,0,0.9);
-  min-height: 2.2rem;
-}
-.firing-layer {
-  font-size: clamp(0.6rem, 1.8vw, 0.75rem);
-  color: rgba(245,230,200,0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-top: 0.2rem;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(6,9,15,0.95), transparent);
+  padding: clamp(1rem, 3vw, 1.5rem);
+  padding-top: 3rem;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
-.touch-hint {
-  position: absolute;
-  bottom: clamp(1rem, 4vw, 2rem);
-  right: clamp(1rem, 4vw, 2rem);
+.control-row {
+  display: flex;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  align-items: flex-start;
+  margin-bottom: clamp(0.8rem, 2vw, 1.2rem);
+  flex-wrap: wrap;
+}
+
+.prompt-input-box {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(245,230,200,0.08);
+  border: 1px solid rgba(245,230,200,0.2);
+  border-radius: 3px;
+  padding: 0.6rem 0.8rem;
+  font-family: 'IM Fell English', serif;
   font-style: italic;
+  font-size: clamp(0.8rem, 2vw, 0.95rem);
+  color: var(--cream);
+  resize: none;
+  outline: none;
+}
+
+.prompt-input-box::placeholder {
+  color: rgba(245,230,200,0.35);
+}
+
+.generate-btn {
+  background: rgba(245,208,80,0.2);
+  border: 1px solid rgba(245,208,80,0.5);
+  color: var(--gold);
+  padding: 0.6rem 1.2rem;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.generate-btn:hover {
+  background: rgba(245,208,80,0.3);
+}
+
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Word journey display */
+.word-journey {
+  margin-bottom: 1rem;
+  min-height: 2.5rem;
+}
+
+.journey-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(245,208,80,0.5);
+  margin-bottom: 0.5rem;
+}
+
+.word-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.word-token {
+  padding: 0.3rem 0.6rem;
+  background: rgba(245,230,200,0.08);
+  border: 1px solid rgba(245,230,200,0.15);
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(245,230,200,0.5);
+  transition: all 0.3s;
+}
+
+.word-token.active {
+  background: rgba(245,208,80,0.25);
+  border-color: rgba(245,208,80,0.6);
+  color: var(--gold);
+  box-shadow: 0 0 15px rgba(245,208,80,0.4);
+}
+
+/* Prediction display */
+.prediction-panel {
+  background: rgba(6,9,15,0.6);
+  border: 1px solid rgba(245,208,80,0.3);
+  border-radius: 3px;
+  padding: 0.8rem;
+}
+
+.prediction-label {
   font-size: 0.65rem;
-  color: rgba(245,230,200,0.3);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(245,208,80,0.6);
+  margin-bottom: 0.6rem;
+}
+
+.prediction-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pred-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.4s;
+}
+
+.pred-row.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.pred-word {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--cream);
+  width: clamp(50px, 15vw, 80px);
+  flex-shrink: 0;
+}
+
+.pred-bar-wrap {
+  flex: 1;
+  height: 18px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pred-bar {
+  height: 100%;
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.8s ease;
+}
+
+.pred-row.visible .pred-bar {
+  transform: scaleX(1);
+}
+
+.pred-bar.top {
+  background: linear-gradient(90deg, var(--ember), var(--gold));
+  box-shadow: 0 0 12px rgba(245,208,80,0.4);
+}
+
+.pred-bar.other {
+  background: linear-gradient(90deg, rgba(30,79,160,0.6), rgba(74,143,212,0.4));
+}
+
+.pred-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(245,230,200,0.45);
+  width: 40px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .vignette {
@@ -282,27 +435,26 @@ body {
   pointer-events: none;
 }
 
-/* Legend */
 .paint-legend {
   position: absolute;
-  bottom: clamp(1rem,4vw,2rem);
-  right: clamp(1rem,4vw,2rem);
-  display: flex; flex-direction: column; gap: 0.4rem;
+  top: clamp(1rem,3vw,1.5rem);
+  right: clamp(1rem,3vw,1.5rem);
+  display: flex; flex-direction: column; gap: 0.35rem;
+  margin-top: 2.5rem;
 }
 .legend-item {
-  display: flex; align-items: center; gap: 0.5rem;
-  font-size: 0.6rem; color: rgba(245,230,200,0.45); font-style: italic;
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.55rem; color: rgba(245,230,200,0.4); font-style: italic;
 }
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 </style>
 </head>
 <body>
 
-<!-- ══════════ INTRO ══════════ -->
 <div id="intro">
   <div class="intro-title">The Neural<br><span>Night</span></div>
-  <p class="intro-sub">A living painting of neurons inside a language model — inspired by Van Gogh's Starry Night</p>
+  <p class="intro-sub">Watch words journey through a language model's neural network — visualized as Van Gogh's Starry Night</p>
   <div class="mode-buttons">
     <button class="mode-btn" onclick="startAR()">
       <span class="icon">📷</span>
@@ -314,14 +466,13 @@ body {
     <button class="mode-btn" onclick="startPainting()">
       <span class="icon">🎨</span>
       <span class="btn-text">
-        <span class="btn-label">Living Painting</span>
-        <span class="btn-desc">Watch neurons fire in the full Van Gogh canvas</span>
+        <span class="btn-label">Neural Journey</span>
+        <span class="btn-desc">Watch words travel through the network layer by layer</span>
       </span>
     </button>
   </div>
 </div>
 
-<!-- ══════════ AR VIEW ══════════ -->
 <div id="ar-view">
   <video id="camera-feed" autoplay playsinline muted></video>
   <canvas id="ar-canvas"></canvas>
@@ -337,7 +488,7 @@ body {
 
   <div class="ar-ui">
     <div class="ar-top">
-      <div class="ar-badge">⬤ AR LIVE</div>
+      <div class="ar-badge" id="arStatus">⬤ SEARCHING...</div>
       <button class="ar-back-btn" onclick="backToIntro()">✕ Exit</button>
     </div>
     <div class="ar-bottom">
@@ -347,38 +498,53 @@ body {
   </div>
 </div>
 
-<!-- ══════════ PAINTING VIEW ══════════ -->
 <div id="paint-view">
   <canvas id="paint-canvas"></canvas>
   <div class="vignette"></div>
   <div class="paint-ui">
     <div class="paint-title">The Neural Night</div>
     <button class="paint-back-btn" onclick="backToIntro()">✕ Exit</button>
-    <div class="paint-info">
-      <div class="firing-concept" id="conceptWord"></div>
-      <div class="firing-layer" id="layerName"></div>
-    </div>
+    
     <div class="paint-legend">
       <div class="legend-item"><div class="legend-dot" style="background:#4a8fd4"></div>Dormant</div>
       <div class="legend-item"><div class="legend-dot" style="background:#f5d050"></div>Firing</div>
       <div class="legend-item"><div class="legend-dot" style="background:#6dcf6d"></div>Inhibitory</div>
       <div class="legend-item"><div class="legend-dot" style="background:#c060e0"></div>Attention</div>
     </div>
-    <div class="touch-hint">Tap anywhere<br>to fire a neuron</div>
+    
+    <div class="bottom-panel">
+      <div class="control-row">
+        <textarea class="prompt-input-box" id="promptInput" rows="1" placeholder="Type a sentence... (e.g., 'The universe whispers in')"></textarea>
+        <button class="generate-btn" id="generateBtn" onclick="processPrompt()">PROCESS →</button>
+      </div>
+      
+      <div class="word-journey">
+        <div class="journey-label">⬢ Word Journey</div>
+        <div class="word-tokens" id="wordTokens"></div>
+      </div>
+      
+      <div class="prediction-panel" id="predictionPanel" style="display:none">
+        <div class="prediction-label">⬢ Next Word Predictions</div>
+        <div class="prediction-bars" id="predictionBars"></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// ════════════════════════════════════════
-//  SHARED STATE
-// ════════════════════════════════════════
 let currentMode = 'intro';
 let arStream = null;
 let paintAnim = null;
 
 function backToIntro() {
-  if (arStream) { arStream.getTracks().forEach(t => t.stop()); arStream = null; }
-  if (paintAnim) { cancelAnimationFrame(paintAnim); paintAnim = null; }
+  if (arStream) { 
+    arStream.getTracks().forEach(t => t.stop()); 
+    arStream = null; 
+  }
+  if (paintAnim) { 
+    cancelAnimationFrame(paintAnim); 
+    paintAnim = null; 
+  }
   document.getElementById('ar-view').classList.remove('active');
   document.getElementById('paint-view').classList.remove('active');
   document.getElementById('intro').classList.remove('hidden');
@@ -386,7 +552,7 @@ function backToIntro() {
 }
 
 // ════════════════════════════════════════
-//  AR MODE
+//  AR MODE (simplified for space)
 // ════════════════════════════════════════
 async function startAR() {
   document.getElementById('intro').classList.add('hidden');
@@ -409,7 +575,6 @@ async function startAR() {
   } catch(e) {
     noCam.classList.add('visible');
     video.style.display = 'none';
-    // Still run AR overlay on black background
     runAROverlay(canvas, null);
   }
 }
@@ -417,86 +582,55 @@ async function startAR() {
 function runAROverlay(canvas, video) {
   const ctx = canvas.getContext('2d');
   let W, H;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
   resize();
-  window.addEventListener('resize', resize);
 
-  // AR neurons — smaller, floating over camera
   const AR_NEURONS = [];
-  const AR_N = 40;
-  for (let i = 0; i < AR_N; i++) {
+  for (let i = 0; i < 60; i++) {
     AR_NEURONS.push({
       x: Math.random(), y: Math.random(),
-      vx: (Math.random()-0.5)*0.0004, vy: (Math.random()-0.5)*0.0004,
-      r: 3 + Math.random()*8,
-      act: Math.random(),
-      fireTimer: 0,
+      vx: (Math.random()-0.5)*0.0005, vy: (Math.random()-0.5)*0.0005,
+      r: 2.5 + Math.random()*9, fireTimer: 0,
       type: Math.random()<0.12 ? 'attn' : (Math.random()<0.15 ? 'inhib' : 'excit'),
       connections: [],
-      wobble: Math.random()*Math.PI*2,
     });
   }
 
-  // Connect nearby
   AR_NEURONS.forEach(n => {
     AR_NEURONS.forEach(m => {
       if (n === m) return;
       const dx = n.x-m.x, dy = n.y-m.y;
-      if (Math.sqrt(dx*dx+dy*dy) < 0.18 && Math.random()<0.3) n.connections.push(m);
+      if (Math.sqrt(dx*dx+dy*dy) < 0.2 && Math.random()<0.35) n.connections.push(m);
     });
   });
 
   let arSignals = [];
   let t = 0;
 
-  // Tap to fire
-  canvas.parentElement.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const tx = touch.clientX/W, ty = touch.clientY/H;
-    let best = null, bd = 9999;
-    AR_NEURONS.forEach(n => {
-      const d = Math.sqrt((n.x-tx)**2+(n.y-ty)**2);
-      if(d<bd){bd=d;best=n;}
-    });
-    if(best){
-      best.fireTimer=80;
-      best.connections.forEach(c=>{
-        setTimeout(()=>{c.fireTimer=50; arSignals.push({from:best,to:c,p:0,speed:0.025});},120);
-      });
-    }
-  }, {passive:false});
-
   function drawARNeuron(n) {
     const x = n.x*W, y = n.y*H;
     const firing = n.fireTimer > 0;
     const pulse = firing ? Math.sin(n.fireTimer*0.3)*0.5+0.5 : 0;
-    const r = n.r * (1 + pulse*2);
-
+    const r = n.r * (1 + pulse*2.2);
     let color = firing ? '#f5d050' : (n.type==='attn' ? '#c060e0' : n.type==='inhib' ? '#6dcf6d' : '#2a6ab0');
     let glowCol = firing ? '#ffe060' : color;
 
-    // Glow
-    const grd = ctx.createRadialGradient(x,y,0,x,y,r*3);
-    grd.addColorStop(0, glowCol+'55');
-    grd.addColorStop(1,'transparent');
-    ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2);
-    ctx.fillStyle = grd; ctx.fill();
-
-    // Body dabs
-    for(let d=0;d<4;d++){
-      const dx=x+(Math.random()-0.5)*r*0.7, dy2=y+(Math.random()-0.5)*r*0.7;
-      ctx.beginPath(); ctx.arc(dx,dy2,r*(0.5+Math.random()*0.5),0,Math.PI*2);
-      ctx.fillStyle=color;
-      ctx.globalAlpha=0.7+Math.random()*0.3;
-      ctx.fill();
+    for(let ring=4;ring>=1;ring--){
+      const rr = r*(1+ring*0.8+pulse*ring*0.5);
+      const grd = ctx.createRadialGradient(x,y,0,x,y,rr);
+      grd.addColorStop(0, glowCol+'65');
+      grd.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(x,y,rr,0,Math.PI*2);
+      ctx.fillStyle = grd; ctx.globalAlpha=0.6; ctx.fill();
     }
     ctx.globalAlpha=1;
 
+    for(let d=0;d<5;d++){
+      const dx=x+(Math.random()-0.5)*r*0.75, dy2=y+(Math.random()-0.5)*r*0.75;
+      ctx.beginPath(); ctx.arc(dx,dy2,r*(0.5+Math.random()*0.5),0,Math.PI*2);
+      ctx.fillStyle=color; ctx.globalAlpha=0.7+Math.random()*0.3; ctx.fill();
+    }
+    ctx.globalAlpha=1;
     if(n.fireTimer>0) n.fireTimer--;
   }
 
@@ -505,46 +639,10 @@ function runAROverlay(canvas, video) {
     t += 0.015;
     ctx.clearRect(0,0,W,H);
 
-    // Connections
-    AR_NEURONS.forEach(n=>{
-      n.connections.forEach(m=>{
-        ctx.save();
-        ctx.globalAlpha=0.06;
-        ctx.beginPath();
-        ctx.moveTo(n.x*W,n.y*H); ctx.lineTo(m.x*W,m.y*H);
-        ctx.strokeStyle='#4a8fd4'; ctx.lineWidth=0.8; ctx.stroke();
-        ctx.restore();
-      });
-    });
-
-    // Auto-fire
-    if(Math.floor(t*10)%40===0 && Math.random()<0.3){
-      const n = AR_NEURONS[Math.floor(Math.random()*AR_NEURONS.length)];
-      n.fireTimer=60;
-      n.connections.slice(0,2).forEach(c=>{
-        setTimeout(()=>{c.fireTimer=40;arSignals.push({from:n,to:c,p:0,speed:0.02});},150);
-      });
-    }
-
-    AR_NEURONS.forEach(n=>{
-      n.x+=n.vx; n.y+=n.vy;
+    AR_NEURONS.forEach(n=>{ n.x+=n.vx; n.y+=n.vy;
       if(n.x<0.02)n.x=0.02; if(n.x>0.98)n.x=0.98;
       if(n.y<0.02)n.y=0.02; if(n.y>0.98)n.y=0.98;
       drawARNeuron(n);
-    });
-
-    // Signals
-    arSignals = arSignals.filter(s=>{
-      s.p += s.speed;
-      const x = (s.from.x+(s.to.x-s.from.x)*s.p)*W;
-      const y = (s.from.y+(s.to.y-s.from.y)*s.p)*H;
-      const grd2 = ctx.createRadialGradient(x,y,0,x,y,6);
-      grd2.addColorStop(0,'#ffffff');
-      grd2.addColorStop(0.4,'#f5d050');
-      grd2.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
-      ctx.fillStyle=grd2; ctx.globalAlpha=0.9; ctx.fill(); ctx.globalAlpha=1;
-      return s.p < 1;
     });
 
     requestAnimationFrame(loop);
@@ -552,15 +650,156 @@ function runAROverlay(canvas, video) {
   loop();
 }
 
+// ════════════════════════════════════════
+//  PAINTING MODE WITH WORD JOURNEY
+// ════════════════════════════════════════
+let neurons = [];
+let signals = [];
+let wordTokens = [];
 
-// ════════════════════════════════════════
-//  PAINTING MODE
-// ════════════════════════════════════════
 function startPainting() {
   document.getElementById('intro').classList.add('hidden');
   document.getElementById('paint-view').classList.add('active');
   currentMode = 'paint';
   runPainting();
+}
+
+// PROCESS PROMPT - word by word journey
+async function processPrompt() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if(!prompt) return;
+  
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('predictionPanel').style.display = 'none';
+  document.getElementById('wordTokens').innerHTML = '';
+  
+  // Tokenize
+  const words = prompt.split(/\s+/);
+  wordTokens = words.map((w, i) => ({
+    text: w,
+    id: i,
+    el: null
+  }));
+  
+  // Create token elements
+  wordTokens.forEach(tok => {
+    const el = document.createElement('div');
+    el.className = 'word-token';
+    el.textContent = tok.text;
+    tok.el = el;
+    document.getElementById('wordTokens').appendChild(el);
+  });
+  
+  // Process each word through network
+  for(let i = 0; i < wordTokens.length; i++) {
+    await processWord(wordTokens[i]);
+    await delay(800);
+  }
+  
+  // Show predictions
+  await delay(400);
+  showPredictions(words[words.length - 1]);
+  
+  document.getElementById('generateBtn').disabled = false;
+}
+
+async function processWord(token) {
+  // Highlight token
+  token.el.classList.add('active');
+  
+  // Send word through all 6 layers
+  for(let layer = 0; layer < 6; layer++) {
+    const layerNeurons = neurons.filter(n => n.layer === layer);
+    
+    // Fire 2-3 neurons in this layer
+    const toFire = layerNeurons.slice(0, 2 + Math.floor(Math.random()*2));
+    toFire.forEach(n => {
+      n.fireTimer = 50;
+      n.activation = 1;
+      
+      // Send signals to next layer
+      n.connections.forEach(conn => {
+        signals.push({
+          x: n.x, y: n.y,
+          tx: conn.to.x, ty: conn.to.y,
+          p: 0, speed: 0.025,
+          color: '#f5d050', trail: []
+        });
+      });
+    });
+    
+    await delay(200);
+  }
+  
+  // Un-highlight
+  await delay(200);
+  token.el.classList.remove('active');
+}
+
+function showPredictions(lastWord) {
+  document.getElementById('predictionPanel').style.display = 'block';
+  
+  // Generate realistic-looking predictions based on last word
+  const predictionSets = {
+    'the': [
+      {word: 'universe', prob: 0.34},
+      {word: 'world', prob: 0.22},
+      {word: 'sun', prob: 0.15},
+      {word: 'stars', prob: 0.12},
+      {word: 'cosmos', prob: 0.08}
+    ],
+    'universe': [
+      {word: 'is', prob: 0.38},
+      {word: 'expands', prob: 0.24},
+      {word: 'contains', prob: 0.16},
+      {word: 'whispers', prob: 0.11},
+      {word: 'speaks', prob: 0.06}
+    ],
+    'whispers': [
+      {word: 'in', prob: 0.41},
+      {word: 'secrets', prob: 0.25},
+      {word: 'softly', prob: 0.15},
+      {word: 'through', prob: 0.10},
+      {word: 'ancient', prob: 0.05}
+    ],
+    'in': [
+      {word: 'the', prob: 0.36},
+      {word: 'mathematics', prob: 0.28},
+      {word: 'darkness', prob: 0.17},
+      {word: 'silence', prob: 0.10},
+      {word: 'starlight', prob: 0.05}
+    ],
+    'default': [
+      {word: 'and', prob: 0.32},
+      {word: 'the', prob: 0.26},
+      {word: 'that', prob: 0.18},
+      {word: 'in', prob: 0.12},
+      {word: 'of', prob: 0.08}
+    ]
+  };
+  
+  const preds = predictionSets[lastWord.toLowerCase()] || predictionSets['default'];
+  
+  const barsHTML = preds.map((p, i) => `
+    <div class="pred-row" style="transition-delay:${i*0.1}s">
+      <div class="pred-word">${p.word}</div>
+      <div class="pred-bar-wrap">
+        <div class="pred-bar ${i===0?'top':'other'}" style="width:${p.prob*100}%"></div>
+      </div>
+      <div class="pred-pct">${(p.prob*100).toFixed(0)}%</div>
+    </div>
+  `).join('');
+  
+  document.getElementById('predictionBars').innerHTML = barsHTML;
+  
+  // Animate in
+  setTimeout(() => {
+    document.querySelectorAll('.pred-row').forEach(el => el.classList.add('visible'));
+  }, 50);
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function runPainting() {
@@ -574,22 +813,17 @@ function runPainting() {
   const PAL={
     sky:['#0d1b3e','#112244','#0a1530','#162855','#0e1f40','#081228'],
     star:['#f5d050','#f0c030','#ffe880','#ffd040','#fff0a0'],
-    fire:['#e87020','#f09030','#ff6010'],
     blue:['#1e4fa0','#2a5ab0','#3060c0','#4070d0'],
     green:['#2a6030','#3a7a3a','#4a9040'],
     purple:['#6a1a8a','#8030a0','#9040b0'],
-    cream:['#f5e6c8','#f8ead0'],
   };
   function pick(a){return a[Math.floor(Math.random()*a.length)];}
   function lerp(a,b,t){return a+(b-a)*t;}
-  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
 
   const LAYERS=6;
   const LAYER_NAMES=['Input','Embed','Attn·1','FFN·1','Attn·2','Output'];
-  const WORDS=['the','universe','whispers','in','mathematics','love','light','memory',
-    'river','dream','fire','shadow','truth','echo','night','mind','word','soul','time'];
 
-  let neurons=[], signals=[], bgStrokes=[];
+  let bgStrokes=[];
 
   function swirlAngle(x,y,t){
     const nx=x/W,ny=y/H;
@@ -621,7 +855,7 @@ function runPainting() {
           firing:false, fireTimer:0,
           type:Math.random()<0.12?'attention':(Math.random()<0.14?'inhibitory':'excitatory'),
           connections:[], baseRadius:2.5+Math.random()*5,
-          wobble:Math.random()*Math.PI*2, word:pick(WORDS),
+          wobble:Math.random()*Math.PI*2,
         });
       }
     }
@@ -636,21 +870,6 @@ function runPainting() {
     });
   }
   buildNeurons();
-
-  // Touch/click to fire
-  canvas.addEventListener('pointerdown', e=>{
-    const px=e.clientX, py=e.clientY;
-    let best=null,bd=9999;
-    neurons.forEach(n=>{const d=Math.sqrt((n.x-px)**2+(n.y-py)**2);if(d<bd){bd=d;best=n;}});
-    if(best&&bd<80){
-      best.fireTimer=80; best.activation=1;
-      document.getElementById('conceptWord').textContent='"'+best.word+'"';
-      document.getElementById('layerName').textContent=LAYER_NAMES[best.layer]+' layer';
-      best.connections.forEach(c=>{
-        setTimeout(()=>{c.to.fireTimer=50;signals.push({x:best.x,y:best.y,tx:c.to.x,ty:c.to.y,p:0,speed:0.022+Math.random()*0.015,color:pick(PAL.star),trail:[]});},130);
-      });
-    }
-  });
 
   function brushStroke(cx,cy,angle,length,width,color,alpha,wobble){
     ctx.save(); ctx.globalAlpha=alpha; ctx.translate(cx,cy); ctx.rotate(angle);
@@ -700,7 +919,6 @@ function runPainting() {
     if(n.fireTimer>0)n.fireTimer--;
   }
 
-  // Connection pre-canvas
   let connCanvas=null;
   function buildConnCanvas(){
     connCanvas=document.createElement('canvas');
@@ -709,28 +927,25 @@ function runPainting() {
     neurons.forEach(n=>{
       n.connections.forEach(conn=>{
         const dx=conn.to.x-n.x,dy=conn.to.y-n.y;
-        cc.save();cc.globalAlpha=0.1+Math.abs(conn.weight)*0.08;
+        cc.save();cc.globalAlpha=0.15+Math.abs(conn.weight)*0.15;
         cc.beginPath();cc.moveTo(n.x,n.y);
         const cpx1=n.x+dx*0.3+(Math.random()-0.5)*30,cpy1=n.y+dy*0.3+(Math.random()-0.5)*30;
         const cpx2=n.x+dx*0.7+(Math.random()-0.5)*30,cpy2=n.y+dy*0.7+(Math.random()-0.5)*30;
         cc.bezierCurveTo(cpx1,cpy1,cpx2,cpy2,conn.to.x,conn.to.y);
         cc.strokeStyle=conn.weight>0?'#1e4fa0':'#2a6030';
-        cc.lineWidth=0.4+Math.abs(conn.weight)*0.4;cc.lineCap='round';cc.stroke();cc.restore();
+        cc.lineWidth=0.8+Math.abs(conn.weight)*0.6;cc.lineCap='round';cc.stroke();cc.restore();
       });
     });
   }
   buildConnCanvas();
 
-  let t=0, lastFire=0;
-
-  // Initial fill
+  let t=0;
   ctx.fillStyle='#06090f'; ctx.fillRect(0,0,W,H);
 
   function frame(){
     if(currentMode!=='paint')return;
     t+=0.013;
 
-    // Sky background overlay
     ctx.save();ctx.globalAlpha=0.018;
     ctx.fillStyle='#06090f';ctx.fillRect(0,0,W,H);ctx.restore();
 
@@ -741,7 +956,6 @@ function runPainting() {
     });
     ctx.restore();
 
-    // Layer labels
     for(let l=0;l<LAYERS;l++){
       const lx=W*(0.1+l*0.15);
       ctx.save();ctx.globalAlpha=0.28;
@@ -752,7 +966,6 @@ function runPainting() {
 
     if(connCanvas)ctx.drawImage(connCanvas,0,0);
 
-    // Firing connections
     neurons.forEach(n=>{
       if(n.fireTimer>30)n.connections.forEach(c=>{
         ctx.save();ctx.globalAlpha=0.7;
@@ -767,7 +980,6 @@ function runPainting() {
       drawNeuron(n,t);
     });
 
-    // Signals
     signals=signals.filter(s=>{
       s.p+=s.speed;
       const x=lerp(s.x,s.tx,s.p), y=lerp(s.y,s.ty,s.p);
@@ -784,32 +996,6 @@ function runPainting() {
       ctx.globalAlpha=1;
       return s.p<1;
     });
-
-    // Auto cascade
-    if(t-lastFire>3.5){
-      lastFire=t;
-      const starters=neurons.filter(n=>n.layer===0);
-      const starter=starters[Math.floor(Math.random()*starters.length)];
-      if(starter){
-        starter.fireTimer=65;starter.activation=1;
-        document.getElementById('conceptWord').textContent='"'+starter.word+'"';
-        document.getElementById('layerName').textContent='Input layer activating';
-        function cascade(neuron,depth){
-          if(depth>5)return;
-          neuron.connections.forEach(conn=>{
-            setTimeout(()=>{
-              conn.to.fireTimer=40+Math.random()*25;
-              conn.to.activation=clamp(neuron.activation*(0.5+Math.abs(conn.weight)*0.4),0,1);
-              signals.push({x:neuron.x,y:neuron.y,tx:conn.to.x,ty:conn.to.y,p:0,
-                speed:0.018+Math.random()*0.012,color:pick(PAL.star),trail:[]});
-              document.getElementById('layerName').textContent=LAYER_NAMES[conn.to.layer]+' layer';
-              cascade(conn.to,depth+1);
-            },depth*160+Math.random()*100);
-          });
-        }
-        cascade(starter,0);
-      }
-    }
 
     paintAnim=requestAnimationFrame(frame);
   }
