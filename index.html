@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>StarryNet AR (WebXR) — Van Gogh-ish Neural Network</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#05060b; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    #hud {
+      position:fixed; left:12px; top:12px; z-index:10;
+      padding:10px 12px; border-radius:14px;
+      background: rgba(10, 12, 22, 0.55);
+      color:#e9ecff; backdrop-filter: blur(10px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      max-width: 320px;
+    }
+    #hud b { display:block; margin-bottom:6px; }
+    #hud small { opacity:.9; line-height:1.35; display:block; }
+    #hint { margin-top:8px; opacity:.85; }
+    #btnRow { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    button {
+      border:0; padding:10px 12px; border-radius:12px; cursor:pointer;
+      background: rgba(255,255,255,0.08); color:#fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+    button:hover { background: rgba(255,255,255,0.12); }
+    #status { margin-top:8px; font-size: 12px; opacity:.85; }
+    canvas { display:block; width:100%; height:100%; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <b>StarryNet AR</b>
+    <small>Desktop: drag to orbit, scroll to zoom. Click nodes to “fire”.</small>
+    <small id="hint">Phone (supported): press <b>Enter AR</b>, move to find a surface, tap to place.</small>
+    <div id="btnRow">
+      <button id="enterArBtn">Enter AR</button>
+      <button id="regenBtn">Regenerate</button>
+      <button id="pulseBtn">Pulse</button>
+    </div>
+    <div id="status">Status: initializing…</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+    import { VRButton } from "https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js";
+    import { ARButton } from "https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js";
+
+    // ---------- Basic scene ----------
+    const statusEl = document.getElementById("status");
+    const enterArBtn = document.getElementById("enterArBtn");
+    const regenBtn = document.getElementById("regenBtn");
+    const pulseBtn = document.getElementById("pulseBtn");
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x05060b, 0.18);
+
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.01, 50);
+    camera.position.set(0.9, 0.8, 1.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // Lights for subtle specular “paint”
+    const hemi = new THREE.HemisphereLight(0x6c7bff, 0x06040a, 0.7);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xfff1c7, 0.85);
+    dir.position.set(2, 4, 1);
+    scene.add(dir);
+
+    // Orbit controls (non-AR)
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.2, 0);
+
+    // ---------- “Starry Night” shader ----------
+    // Procedural swirls + stars + brushy ridges. Not a copy, just an inspired vibe.
+    const starryMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uTime: { value: 0 },
+        uTintA: { value: new THREE.Color("#0b1a6d") }, // deep cobalt
+        uTintB: { value: new THREE.Color("#0a0a14") }, // night
+        uGold:  { value: new THREE.Color("#ffd37a") }, // warm stars
+        uCyan:  { value: new THREE.Color("#66d9ff") }, // cool glow
+        uOpacity: { value: 0.95 },
+        uEmissive: { value: 0.65 },
+      },
+      vertexShader: /* glsl */`
+        varying vec3 vPos;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vPos = position;
+          vNormal = normalMatrix * normal;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        varying vec3 vPos;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+
+        uniform float uTime;
+        uniform vec3 uTintA;
+        uniform vec3 uTintB;
+        uniform vec3 uGold;
+        uniform vec3 uCyan;
+        uniform float uOpacity;
+        uniform float uEmissive;
+
+        // hash / noise
+        float hash(vec2 p){
+          p = fract(p*vec2(123.34, 345.45));
+          p += dot(p, p+34.345);
+          return fract(p.x*p.y);
+        }
+        float noise(vec2 p){
+          vec2 i=floor(p), f=fract(p);
+          float a=hash(i);
+          float b=hash(i+vec2(1,0));
+          float c=hash(i+vec2(0,1));
+          float d=hash(i+vec2(1,1));
+          vec2 u=f*f*(3.0-2.0*f);
+          return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+        }
+
+        // swirl field
+        vec2 swirl(vec2 p, float t){
+          float n = noise(p*2.2 + t*0.05);
+          float ang = (n*6.2831) + 0.8*sin(t*0.15);
+          mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+          return rot*(p);
+        }
+
+        float star(vec2 p, float size){
+          float d = length(p);
+          float core = smoothstep(size, size*0.35, d);
+          float rays = 0.0;
+          float a = atan(p.y, p.x);
+          rays = pow(abs(sin(a*5.0))*abs(cos(a*3.0)), 6.0);
+          rays *= smoothstep(size*1.6, size*0.5, d);
+          return clamp(core + rays, 0.0, 1.0);
+        }
+
+        void main(){
+          // Map to a “canvas” space
+          vec2 p = vUv*2.0 - 1.0;
+          float t = uTime;
+
+          // Brush ridges (fake impasto)
+          float ridge = 0.0;
+          vec2 q = p;
+          for(int i=0;i<4;i++){
+            q = swirl(q + vec2(0.03*float(i), -0.02*float(i)), t + float(i)*7.0);
+            ridge += noise(q*3.0 + float(i)*10.0);
+          }
+          ridge /= 4.0;
+          ridge = pow(ridge, 1.7);
+
+          // Swirling sky bands
+          vec2 s = swirl(p*1.2, t);
+          float band = noise(s*2.2 + vec2(t*0.03, -t*0.02));
+          band = smoothstep(0.25, 0.78, band);
+
+          // Star clusters
+          float st = 0.0;
+          vec2 sp = p*3.0 + vec2(0.0, 0.15*sin(t*0.12));
+          for(int i=0;i<10;i++){
+            vec2 cell = floor(sp*1.6 + float(i));
+            vec2 r = fract(sp*1.6 + float(i)) - 0.5;
+            float h = hash(cell + float(i)*13.2);
+            float size = mix(0.05, 0.18, pow(h, 6.0));
+            vec2 jitter = vec2(hash(cell+2.1), hash(cell+9.7)) - 0.5;
+            st += star(r + jitter*0.15, size) * smoothstep(0.62, 1.0, h);
+          }
+          st = clamp(st, 0.0, 1.0);
+
+          // Base palette blend
+          vec3 sky = mix(uTintB, uTintA, band);
+          vec3 paint = sky;
+
+          // Add warm stars + cool halos
+          paint += uGold * st * 1.25;
+          paint += uCyan * st * 0.35;
+
+          // Add brush ridges as brighter “stroke highlights”
+          paint *= (0.82 + 0.45*ridge);
+
+          // Simple fake lighting based on normal
+          float ndl = clamp(dot(normalize(vNormal), normalize(vec3(0.25, 0.9, 0.35))), 0.0, 1.0);
+          paint += uEmissive * (0.12 + 0.28*ndl);
+
+          // Slight vignetting
+          float vign = smoothstep(1.25, 0.2, length(p));
+          paint *= (0.65 + 0.35*vign);
+
+          gl_FragColor = vec4(paint, uOpacity);
+        }
+      `
+    });
+
+    // ---------- Neural network geometry ----------
+    let networkRoot = new THREE.Group();
+    scene.add(networkRoot);
+
+    // For AR placement:
+    const reticle = new THREE.Mesh(
+      new THREE.RingGeometry(0.06, 0.085, 32).rotateX(-Math.PI/2),
+      new THREE.MeshBasicMaterial({ color: 0x66d9ff })
+    );
+    reticle.matrixAutoUpdate = false;
+    reticle.visible = false;
+    scene.add(reticle);
+
+    // Hit-test state
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
+    let placedInAR = false;
+
+    // Raycaster for clicks/taps
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const clickableNodes = [];
+
+    function buildNetwork({ layers = [6, 9, 7, 5], spreadY = 0.55, spreadZ = 0.55 } = {}) {
+      // cleanup
+      clickableNodes.length = 0;
+      networkRoot.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose?.();
+        if (obj.material) obj.material.dispose?.();
+      });
+      scene.remove(networkRoot);
+      networkRoot = new THREE.Group();
+      scene.add(networkRoot);
+
+      // Slight “painting” scale
+      networkRoot.scale.setScalar(0.55);
+
+      // Background “canvas glow” plane behind network (nice in non-AR)
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.4, 1.6, 2, 2),
+        starryMaterial.clone()
+      );
+      plane.material.uniforms.uOpacity.value = 0.55;
+      plane.position.set(0, 0.15, -0.55);
+      plane.rotation.y = 0.15;
+      networkRoot.add(plane);
+
+      // node + edge params
+      const nodeGeo = new THREE.SphereGeometry(0.035, 24, 24);
+      const edgeGeo = new THREE.CylinderGeometry(0.008, 0.008, 1, 16, 1, true);
+
+      // Build nodes
+      const layerCount = layers.length;
+      const xSpan = 1.6;
+      const x0 = -xSpan/2;
+
+      const positions = []; // positions[layer][i]
+      for (let L = 0; L < layerCount; L++) {
+        const n = layers[L];
+        positions[L] = [];
+        for (let i = 0; i < n; i++) {
+          const x = x0 + (xSpan * (L/(layerCount-1)));
+          const y = (i/(n-1 || 1) - 0.5) * spreadY + (Math.random()*0.02 - 0.01);
+          const z = (Math.random()*2 - 1) * 0.12 + (Math.sin((i+L)*0.6)*0.04);
+          const mat = starryMaterial.clone();
+          mat.uniforms.uOpacity.value = 0.95;
+          mat.uniforms.uEmissive.value = 0.9;
+
+          const node = new THREE.Mesh(nodeGeo, mat);
+          node.position.set(x, y, z);
+          node.userData = { layer: L, index: i, firedAt: -999 };
+          positions[L][i] = node.position.clone();
+          networkRoot.add(node);
+          clickableNodes.push(node);
+
+          // outer “halo”
+          const halo = new THREE.Mesh(
+            new THREE.SphereGeometry(0.055, 24, 24),
+            new THREE.MeshBasicMaterial({ color: 0xffd37a, transparent:true, opacity:0.08 })
+          );
+          halo.position.copy(node.position);
+          halo.userData = { isHalo: true, node };
+          networkRoot.add(halo);
+        }
+      }
+
+      // Edges between layers (connect to a few neighbors for clarity)
+      const edges = new THREE.Group();
+      networkRoot.add(edges);
+
+      function addEdge(a, b) {
+        const dir = new THREE.Vector3().subVectors(b, a);
+        const len = dir.length();
+        const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+
+        const mat = starryMaterial.clone();
+        mat.uniforms.uOpacity.value = 0.70;
+        mat.uniforms.uEmissive.value = 0.55;
+
+        const cyl = new THREE.Mesh(edgeGeo, mat);
+        cyl.position.copy(mid);
+        cyl.scale.set(1, len, 1);
+
+        // orient cylinder along dir (y-axis is length axis)
+        cyl.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          dir.clone().normalize()
+        );
+
+        cyl.userData = { firedAt: -999 };
+        edges.add(cyl);
+      }
+
+      for (let L = 0; L < layerCount - 1; L++) {
+        const aN = layers[L], bN = layers[L+1];
+        for (let i = 0; i < aN; i++) {
+          // connect to ~3 targets
+          const targets = new Set();
+          targets.add(Math.floor((i / Math.max(1, aN-1)) * (bN-1)));
+          targets.add(Math.min(bN-1, Math.max(0, targets.values().next().value + (Math.random()<0.5?-1:1))));
+          targets.add(Math.floor(Math.random() * bN));
+          for (const j of targets) addEdge(positions[L][i], positions[L+1][j]);
+        }
+      }
+
+      // Center a bit
+      networkRoot.position.set(0, 0.15, 0);
+      return networkRoot;
+    }
+
+    buildNetwork();
+
+    // ---------- “Firing” animation ----------
+    function fireFrom(node) {
+      const now = clock.getElapsedTime();
+      node.userData.firedAt = now;
+
+      // ripple through later layers (simple stagger)
+      const delayBase = 0.08;
+      clickableNodes.forEach(n => {
+        if (n.userData.layer >= node.userData.layer) {
+          const dL = n.userData.layer - node.userData.layer;
+          const jitter = Math.random() * 0.06;
+          n.userData.firedAt = Math.min(n.userData.firedAt, now + dL*delayBase + jitter);
+        }
+      });
+    }
+
+    function globalPulse() {
+      const pick = clickableNodes[Math.floor(Math.random() * clickableNodes.length)];
+      fireFrom(pick);
+    }
+
+    // ---------- Interaction ----------
+    function onPointer(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
+      const y = -( (e.clientY - rect.top) / rect.height ) * 2 + 1;
+      pointer.set(x, y);
+
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(clickableNodes, false);
+      if (hits.length) fireFrom(hits[0].object);
+    }
+    window.addEventListener("pointerdown", onPointer);
+
+    regenBtn.onclick = () => buildNetwork({
+      layers: [
+        5 + Math.floor(Math.random()*4),
+        8 + Math.floor(Math.random()*5),
+        6 + Math.floor(Math.random()*4),
+        4 + Math.floor(Math.random()*3),
+      ]
+    });
+
+    pulseBtn.onclick = () => globalPulse();
+
+    // ---------- WebXR AR ----------
+    // Use ARButton but also provide a custom “Enter AR” button
+    const arButton = ARButton.createButton(renderer, {
+      requiredFeatures: ["hit-test"],
+      optionalFeatures: ["dom-overlay"],
+      domOverlay: { root: document.body }
+    });
+    arButton.style.display = "none"; // we’ll trigger it via our own button
+    document.body.appendChild(arButton);
+
+    enterArBtn.onclick = () => {
+      // ARButton is a real <button>; click it programmatically
+      arButton.click();
+    };
+
+    renderer.xr.addEventListener("sessionstart", () => {
+      statusEl.textContent = "Status: AR session started. Move phone to find a surface…";
+      placedInAR = false;
+    });
+    renderer.xr.addEventListener("sessionend", () => {
+      statusEl.textContent = "Status: AR session ended. Back to 3D simulation.";
+      reticle.visible = false;
+      hitTestSourceRequested = false;
+      hitTestSource = null;
+      placedInAR = false;
+      // restore for non-AR viewing
+      networkRoot.visible = true;
+      networkRoot.position.set(0, 0.15, 0);
+      networkRoot.scale.setScalar(0.55);
+      controls.enabled = true;
+    });
+
+    // Tap to place network on reticle in AR
+    renderer.domElement.addEventListener("click", () => {
+      if (!renderer.xr.isPresenting) return;
+      if (!reticle.visible) return;
+
+      networkRoot.position.setFromMatrixPosition(reticle.matrix);
+      networkRoot.position.y += 0.0;
+      networkRoot.scale.setScalar(0.35);
+      placedInAR = true;
+      statusEl.textContent = "Status: placed. Tap nodes to fire. (Move closer/farther to scale perception.)";
+    });
+
+    // ---------- Animation loop ----------
+    const clock = new THREE.Clock();
+
+    function animate() {
+      const t = clock.getElapsedTime();
+
+      // Update shader time across all starry materials
+      networkRoot.traverse(obj => {
+        if (obj.material?.uniforms?.uTime) obj.material.uniforms.uTime.value = t;
+      });
+
+      // Non-AR gentle rotation “simulation”
+      if (!renderer.xr.isPresenting) {
+        networkRoot.rotation.y = 0.25 * Math.sin(t*0.25);
+        networkRoot.rotation.x = 0.06 * Math.sin(t*0.33);
+        controls.update();
+        statusEl.textContent = "Status: 3D simulation (non-AR).";
+      } else {
+        controls.enabled = false; // AR uses device pose
+      }
+
+      // “Firing” glow effect
+      const glowWindow = 0.55;
+      clickableNodes.forEach(n => {
+        const dt = t - n.userData.firedAt;
+        const pulse = dt >= 0 ? Math.exp(-dt*6.0) * (0.6 + 0.4*Math.sin(dt*35.0)) : 0.0;
+        if (n.material?.uniforms?.uEmissive) {
+          n.material.uniforms.uEmissive.value = 0.9 + 1.35 * Math.max(0.0, pulse);
+        }
+      });
+
+      // AR hit-test reticle
+      if (renderer.xr.isPresenting) {
+        const session = renderer.xr.getSession();
+        if (session) {
+          if (!hitTestSourceRequested) {
+            session.requestReferenceSpace("viewer").then((refSpace) => {
+              session.requestHitTestSource({ space: refSpace }).then((source) => {
+                hitTestSource = source;
+              });
+            });
+            session.addEventListener("end", () => {
+              hitTestSourceRequested = false;
+              hitTestSource = null;
+            });
+            hitTestSourceRequested = true;
+          }
+
+          const referenceSpace = renderer.xr.getReferenceSpace();
+          const frame = renderer.xr.getFrame();
+          if (hitTestSource && frame) {
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            if (hitTestResults.length) {
+              const hit = hitTestResults[0];
+              const pose = hit.getPose(referenceSpace);
+              reticle.visible = true;
+              reticle.matrix.fromArray(pose.transform.matrix);
+
+              if (!placedInAR) {
+                statusEl.textContent = "Status: surface found. Tap to place the network.";
+              }
+            } else {
+              reticle.visible = false;
+              if (!placedInAR) statusEl.textContent = "Status: searching for a surface…";
+            }
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    renderer.setAnimationLoop(animate);
+
+    // ---------- Resize ----------
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // ---------- Capability hint ----------
+    (async function capabilityHint(){
+      const xr = navigator.xr;
+      if (!xr) {
+        document.getElementById("hint").textContent =
+          "AR not available in this browser/device. Use the 3D simulation mode.";
+        enterArBtn.disabled = true;
+        return;
+      }
+      try {
+        const ok = await xr.isSessionSupported("immersive-ar");
+        enterArBtn.disabled = !ok;
+        if (!ok) {
+          document.getElementById("hint").textContent =
+            "Immersive AR not supported here. You can still use the 3D simulation.";
+        }
+      } catch {
+        enterArBtn.disabled = true;
+        document.getElementById("hint").textContent =
+          "AR support check failed. Use the 3D simulation.";
+      }
+    })();
+  </script>
+</body>
+</html>
